@@ -31,9 +31,9 @@
 ### 方式二：使用 Python 本機伺服器
 如果您希望使用 HTTP 伺服器方式載入，可以在專案根目錄下運行：
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8080
 ```
-然後在瀏覽器中訪問：`http://localhost:8000`
+然後在瀏覽器中訪問：`http://localhost:8080`
 
 ---
 

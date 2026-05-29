@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="互動式 AWS 雲端架構設計與成本估算工具。可視化拖拽或添加 AWS 服務，實時估算每月開銷，自動生成 Terraform 及 AWS CLI 部署代碼。">
+  <title>AWS Architecture & Cost Lab | 雲端架構與成本實驗室</title>
+  
+  <!-- Google Fonts: Outfit (headings), Inter (body) & JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js CDN for Cost Breakdown -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="aws-glow-icon">
+          <i data-lucide="cloud" class="aws-orange-glow"></i>
+        </div>
+        <div class="logo-text">
+          <h1>AWS Cost & Architecture Lab</h1>
+          <span>雲端架構與成本實驗室</span>
+        </div>
+      </div>
+      
+      <div class="header-controls">
+        <div class="control-group">
+          <label for="preset-select" class="sr-only">選擇架構模板</label>
+          <select id="preset-select" class="glass-select">
+            <option value="empty">空白畫布 (Empty Canvas)</option>
+            <option value="basic-web" selected>經典 Web 服務架構 (EC2 + RDS + S3)</option>
+            <option value="serverless">無伺服器微服務 (Lambda + DynamoDB + API Gateway)</option>
+            <option value="ha-enterprise">高可用企業級架構 (ASG + Multi-AZ RDS + CloudFront)</option>
+          </select>
+        </div>
+        
+        <button id="btn-reset" class="glass-btn btn-danger" title="重置畫布">
+          <i data-lucide="rotate-ccw"></i>
+          <span>重置</span>
+        </button>
+
+        <button id="btn-info" class="glass-btn btn-info" title="架構指南">
+          <i data-lucide="help-circle"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace-layout">
+      <!-- Left Sidebar: Service Catalog -->
+      <aside class="service-catalog glass-panel">
+        <h2 class="panel-title">
+          <i data-lucide="plus-circle"></i>
+          <span>新增 AWS 服務</span>
+        </h2>
+        
+        <div class="catalog-sections">
+          <!-- Compute -->
+          <div class="catalog-group">
+            <h3>運算與容器 (Compute)</h3>
+            <div class="catalog-items">
+              <button class="add-service-btn" data-service-type="ec2">
+                <i data-lucide="server" class="color-compute"></i>
+                <div class="btn-info-text">
+                  <strong>EC2 虛擬主機</strong>
+                  <span>彈性雲端伺服器</span>
+                </div>
+              </button>
+              <button class="add-service-btn" data-service-type="lambda">
+                <i data-lucide="zap" class="color-compute"></i>
+                <div class="btn-info-text">
+                  <strong>Lambda 函數</strong>
+                  <span>事件驅動無伺服器計算</span>
+                </div>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Database -->
+          <div class="catalog-group">
+            <h3>資料庫 (Database)</h3>
+            <div class="catalog-items">
+              <button class="add-service-btn" data-service-type="rds">
+                <i data-lucide="database" class="color-database"></i>
+                <div class="btn-info-text">
+                  <strong>RDS 關聯式資料庫</strong>
+                  <span>託管 SQL 資料庫</span>
+                </div>
+              </button>
+              <button class="add-service-btn" data-service-type="dynamodb">
+                <i data-lucide="table-properties" class="color-database"></i>
+                <div class="btn-info-text">
+                  <strong>DynamoDB</strong>
+                  <span>鍵值與文件 NoSQL 資料庫</span>
+                </div>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Storage -->
+          <div class="catalog-group">
+            <h3>儲存與內容傳遞 (Storage)</h3>
+            <div class="catalog-items">
+              <button class="add-service-btn" data-service-type="s3">
+                <i data-lucide="hard-drive" class="color-storage"></i>
+                <div class="btn-info-text">
+                  <strong>S3 物件儲存</strong>
+                  <span>安全、無限容量的物件儲存</span>
+                </div>
+              </button>
+              <button class="add-service-btn" data-service-type="cloudfront">
+                <i data-lucide="globe" class="color-network"></i>
+                <div class="btn-info-text">
+                  <strong>CloudFront CDN</strong>
+                  <span>低延遲全球內容加速</span>
+                </div>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Network -->
+          <div class="catalog-group">
+            <h3>網路與安全 (Networking)</h3>
+            <div class="catalog-items">
+              <button class="add-service-btn" data-service-type="apigateway">
+                <i data-lucide="git-fork" class="color-network"></i>
+                <div class="btn-info-text">
+                  <strong>API Gateway</strong>
+                  <span>託管 API 進入點與路由器</span>
+                </div>
+              </button>
+              <button class="add-service-btn" data-service-type="alb">
+                <i data-lucide="shuffle" class="color-network"></i>
+                <div class="btn-info-text">
+                  <strong>ALB 負載均衡</strong>
+                  <span>應用程式流量分發器</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Panel: Virtual VPC Canvas -->
+      <section class="canvas-section">
+        <div class="vpc-container glass-panel">
+          <div class="vpc-header">
+            <span class="vpc-tag">VPC Region (us-east-1)</span>
+            <div class="subnet-indicators">
+              <span class="subnet-badge public">Public Subnet</span>
+              <span class="subnet-badge private">Private Subnet</span>
+            </div>
+          </div>
+          
+          <!-- Canvas Grid where services live -->
+          <div id="canvas-grid" class="canvas-grid">
+            <!-- Dynamic services inserted by JS here -->
+          </div>
+          
+          <div id="canvas-empty-state" class="canvas-empty-hidden">
+            <i data-lucide="layout-grid"></i>
+            <p>畫布上尚無服務，請點擊左側目錄新增，或選擇右上方預設模板。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Configuration & Code Lab -->
+      <aside class="detail-inspector glass-panel">
+        <div id="inspector-default-state" class="inspector-empty">
+          <i data-lucide="sliders" class="pulsate-icon"></i>
+          <h3>服務屬性與代碼生成</h3>
+          <p>請點擊畫布上的任意服務卡片，在此處調整其規格、配置，並獲取對應的 Terraform 與 AWS CLI 腳本。</p>
+        </div>
+
+        <div id="inspector-active-state" class="inspector-active hidden">
+          <!-- Active Service Info -->
+          <div class="inspector-header">
+            <div class="service-title-wrap">
+              <i id="inspector-service-icon" data-lucide="server"></i>
+              <div>
+                <h3 id="inspector-service-name">EC2 Instance</h3>
+                <span id="inspector-service-id">ec2-12345</span>
+              </div>
+            </div>
+            <button id="btn-delete-service" class="icon-btn btn-danger-text" title="移除此服務">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+
+          <!-- Configuration Form Fields (Dynamically Shown/Hidden based on type) -->
+          <div id="inspector-config-controls" class="config-controls">
+            <!-- Dynamic configuration controls rendered here by JS -->
+          </div>
+
+          <!-- Code Snippets Generator Tab -->
+          <div class="code-generator-tab">
+            <div class="tab-headers">
+              <button class="tab-header-btn active" data-tab="terraform">Terraform</button>
+              <button class="tab-header-btn" data-tab="awscli">AWS CLI</button>
+              <button class="tab-header-btn" data-tab="details">服務介紹</button>
+            </div>
+            
+            <div class="tab-contents">
+              <!-- Terraform -->
+              <div class="tab-content active" id="tab-terraform">
+                <div class="code-box-wrapper">
+                  <button class="copy-code-btn" id="btn-copy-tf" title="複製 Terraform 代碼">
+                    <i data-lucide="copy"></i>
+                  </button>
+                  <pre tabindex="0"><code id="code-tf" class="language-hcl"># Loading...</code></pre>
+                </div>
+              </div>
+              
+              <!-- AWS CLI -->
+              <div class="tab-content" id="tab-awscli">
+                <div class="code-box-wrapper">
+                  <button class="copy-code-btn" id="btn-copy-cli" title="複製 CLI 指令">
+                    <i data-lucide="copy"></i>
+                  </button>
+                  <pre tabindex="0"><code id="code-cli" class="language-bash"># Loading...</code></pre>
+                </div>
+              </div>
+
+              <!-- Educational Details -->
+              <div class="tab-content" id="tab-details">
+                <div id="educational-details" class="educational-text">
+                  <!-- Dynamic explanation text -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom Footer: Real-time Cost Calculator Dashboard -->
+    <footer class="app-footer glass-panel">
+      <!-- Cost breakdown metric -->
+      <div class="cost-summary-card">
+        <div class="cost-stat">
+          <span class="cost-label">預估月度總開銷 (Est. Monthly Cost)</span>
+          <div class="cost-value-container">
+            <span class="currency">$</span>
+            <span id="cost-value" class="cost-number animate-pulse">0.00</span>
+            <span class="period">USD</span>
+          </div>
+        </div>
+        <div class="cost-substat">
+          <span>年化估計開銷 (Annual Est.): <strong id="cost-annual-value">$0.00</strong></span>
+        </div>
+      </div>
+      
+      <!-- Middle: Dynamic visual breakdown charts -->
+      <div class="cost-chart-container">
+        <div class="chart-wrapper">
+          <canvas id="costBreakdownChart" width="160" height="160"></canvas>
+        </div>
+        <div class="chart-legend-container" id="chart-legend">
+          <!-- Dynamic legend -->
+        </div>
+      </div>
+
+      <!-- Right: Cost Optimization Suggestions -->
+      <div class="cost-insights">
+        <h4 class="insights-title">
+          <i data-lucide="sparkles"></i>
+          <span>雲端成本優化建議 (FinOps Insights)</span>
+        </h4>
+        <ul id="optimization-list" class="insights-list">
+          <li>
+            <i data-lucide="check-circle" class="insight-ok"></i>
+            <span>目前架構符合基本預算最佳實踐。</span>
+          </li>
+        </ul>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Help / Info Modal Dialog -->
+  <dialog id="info-dialog" class="glass-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i data-lucide="book-open"></i> AWS 雲端架構與成本計算指南</h2>
+        <button id="btn-close-dialog" class="icon-btn-close">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>歡迎使用 <strong>AWS Cost & Architecture Lab</strong>！這是一個互動式的雲端基礎設施學習與規劃平台。</p>
+        
+        <h3>💡 操作提示</h3>
+        <ol>
+          <li><strong>新增服務</strong>：從左側目錄中點擊任何 AWS 服務（如 EC2, RDS），即可將其新增至中央的 VPC 虛擬網路畫布中。</li>
+          <li><strong>調整配置</strong>：在中央畫布點選該服務卡片，右側會彈出詳細的規格滑桿與選單（如實例規格、儲存大小、流量規模等）。</li>
+          <li><strong>獲取基礎設施即代碼 (IaC)</strong>：隨着您拉動滑桿變更配置，右側的 <strong>Terraform</strong> 與 <strong>AWS CLI</strong> 的部署代碼會同步更新，您可以直接一鍵複製！</li>
+          <li><strong>實時成本分析</strong>：底部面板將隨時反應您的架構設計變更，通過圓餅圖拆解各類服務的預估費用，並提供對應的 FinOps 成本優化建議。</li>
+        </ol>
+
+        <h3>💰 費率模型概要 (模擬報價)</h3>
+        <ul>
+          <li><strong>EC2 虛擬主機</strong>：基於實例等級計費，`t3.micro` ($7.30/月) 至 `c6g.2xlarge` ($205.86/月)。可開啟預留實例 (RI) 打 6 折。</li>
+          <li><strong>Lambda 函數</strong>：按請求量 ($0.20/百萬次) 及記憶體運行時間計費。</li>
+          <li><strong>RDS 資料庫</strong>：依主機規格計費，預設開啟 Multi-AZ 高可用部署將雙倍計費。</li>
+          <li><strong>DynamoDB</strong>：按寫入/讀取容量單位 (WCU/RCU) 以及儲存量 ($0.25/GB) 計費。</li>
+          <li><strong>S3 儲存</strong>：標準儲存單價 $0.023/GB，讀寫 API 按次計費。</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-modal-ok" class="glass-btn btn-primary">開始體驗</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Custom Javascript -->
+  <script src="index.js" defer></script>
+</body>
+</html>
